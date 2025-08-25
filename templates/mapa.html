@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🇪🇨 Mapa Geopolítico del Ecuador</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e5e7eb;
+            overflow-x: hidden;
+        }
+        
+        .app {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+            border-right: 3px solid #374151;
+            padding: 25px;
+            overflow-y: auto;
+            box-shadow: 4px 0 25px rgba(0, 0, 0, 0.4);
+        }
+        
+        .header {
+            text-align: center;
+            padding-bottom: 25px;
+            border-bottom: 2px solid #374151;
+            margin-bottom: 25px;
+        }
+        
+        .header h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #3b82f6, #22c55e, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            color: #9ca3af;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .stats-summary {
+            background: #1f2937;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid #374151;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 20px;
+            font-weight: bold;
+            color: #22c55e;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .region-filter {
+            margin-bottom: 25px;
+        }
+        
+        .region-filter h3 {
+            margin-bottom: 15px;
+            color: #d1d5db;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .region-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .region-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .region-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .region-btn:hover::before {
+            left: 100%;
+        }
+        
+        .region-btn.costa {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+        }
+        
+        .region-btn.sierra {
+            background: linear-gradient(135deg, #22c55e, #15803d);
+            color: white;
+        }
+        
+        .region-btn.amazonia {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .region-btn.insular {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+        
+        .region-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .show-all-btn {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            grid-column: 1/3;
+            margin-top: 10px;
+        }
+        
+        .prov-list {
+            max-height: calc(100vh - 450px);
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .prov-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .prov-list::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 3px;
+        }
+        
+        .prov-list::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 3px;
+        }
+        
+        .prov-btn {
+            width: 100%;
+            text-align: left;
+            padding: 15px 18px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #374151, #4b5563);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .prov-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.6s;
+        }
+        
+        .prov-btn:hover::before {
+            left: 100%;
+        }
+        
+        .prov-btn:hover {
+            background: linear-gradient(135deg, #4b5563, #6b7280);
+            transform: translateX(8px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .prov-name {
+            font-weight: 600;
+        }
+        
+        .prov-capital {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+        
+        .region-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            border: 2px solid rgba(255,255,255,0.3);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,255,255,0.4); }
+            70% { box-shadow: 0 0 0 4px rgba(255,255,255,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+        }
+        
+        .main-content {
+            position: relative;
+            height: 100vh;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 0;
+        }
+        
+        .info-panel {
+            position: absolute;
+            right: 25px;
+            top: 25px;
+            max-width: 400px;
+            background: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(15px);
+            border: 2px solid #374151;
+            border-radius: 15px;
+            padding: 25px;
+            color: white;
+            z-index: 1000;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .info-panel.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        .info-panel h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #ffffff;
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #374151;
+            position: relative;
+        }
+        
+        .info-panel h2::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 2px;
+            background: linear-gradient(90deg, #3b82f6, #22c55e);
+        }
+        
+        .info-grid {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .info-item {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #3b82f6;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .info-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        }
+        
+        .info-item strong {
+            color: #60a5fa;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 700;
+        }
+        
+        .info-item span {
+            color: #e5e7eb;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .province-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #4b5563;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #22c55e, #3b82f6);
+        }
+        
+        .stat-number {
+            font-size: 20px;
+            font-weight: bold;
+            color: #22c55e;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: #374151;
+            border: none;
+            color: #9ca3af;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .close-btn:hover {
+            background: #ef4444;
+            color: #ffffff;
+            transform: rotate(90deg);
+        }
+        
+        .loading {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 150px;
+            font-size: 16px;
+            color: #9ca3af;
+        }
+        
+        .loading::before {
+            content: '🗺️';
+            font-size: 40px;
+            margin-bottom: 15px;
+            animation: spin 2s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .map-controls {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            z-index: 1000;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .control-btn {
+            background: rgba(17, 24, 39, 0.9);
+            border: 1px solid #374151;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .control-btn:hover {
+            background: #374151;
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 1024px) {
+            .app {
+                grid-template-columns: 320px 1fr;
+            }
+            
+            .sidebar {
+                padding: 20px;
+            }
+            
+            .info-panel {
+                max-width: 320px;
+                right: 15px;
+                top: 15px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .app {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+            }
+            
+            .sidebar {
+                max-height: 350px;
+                padding: 15px;
+                overflow-y: auto;
+            }
+            
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .region-buttons {
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+                gap: 5px;
+            }
+            
+            .region-btn {
+                padding: 8px 10px;
+                font-size: 10px;
+            }
+            
+            .show-all-btn {
+                grid-column: 1/5;
+            }
+            
+            .info-panel {
+                position: fixed;
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                max-width: none;
+                max-height: 70vh;
+                overflow-y: auto;
+            }
+            
+            .map-controls {
+                bottom: 15px;
+                left: 15px;
+            }
+        }
+        
+        /* Animaciones de entrada */
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .sidebar {
+            animation: slideInLeft 0.8s ease-out;
+        }
+        
+        /* Efecto de iluminación en hover para las provincias */
+        .leaflet-interactive:hover {
+            filter: brightness(1.2) saturate(1.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="header">
+                <h1>Ecuador Geopolítico</h1>
+                <p>Sistema Interactivo de Información Provincial</p>
+            </div>
+            
+            <div class="stats-summary">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-number">24</span>
+                        <span class="stat-label">Provincias</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">4</span>
+                        <span class="stat-label">Regiones</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">221</span>
+                        <span class="stat-label">Cantones</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number">1,499</span>
+                        <span class="stat-label">Parroquias</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="region-filter">
+                <h3>🌍 Filtrar por Región</h3>
+                <div class="region-buttons">
+                    <button class="region-btn costa" onclick="filterByRegion('Costa')" title="6 provincias costeras">
+                        🏖️ Costa
+                    </button>
+                    <button class="region-btn sierra" onclick="filterByRegion('Sierra')" title="10 provincias serranas">
+                        🏔️ Sierra
+                    </button>
+                    <button class="region-btn amazonia" onclick="filterByRegion('Amazonía')" title="6 provincias amazónicas">
+                        🌳 Amazonía
+                    </button>
+                    <button class="region-btn insular" onclick="filterByRegion('Insular')" title="1 provincia insular">
+                        🏝️ Insular
+                    </button>
+                </div>
+                <button class="region-btn show-all-btn" onclick="showAllProvinces()">
+                    🗺️ Mostrar Todas las Provincias
+                </button>
+            </div>
+            
+            <div class="prov-list" id="prov-list">
+                <div class="loading">
+                    Cargando información geopolítica...
+                </div>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <div id="map"></div>
+            
+            <div class="map-controls">
+                <button class="control-btn" onclick="resetMapView()" title="Vista general de Ecuador">
+                    🎯 Centrar Mapa
+                </button>
+                <button class="control-btn" onclick="toggleFullscreen()" title="Pantalla completa">
+                    📺 Pantalla Completa
+                </button>
+            </div>
+            
+            <div class="info-panel" id="info-panel">
+                <button class="close-btn" onclick="hideInfo()" title="Cerrar información">×</button>
+                <div id="info-content"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Configuración del mapa centrado en Ecuador
+        const map = L.map('map', {
+            center: [-1.8312, -78.1834],
+            zoom: 6.5,
+            minZoom: 5,
+            maxZoom: 12,
+            zoomControl: false
+        });
+
+        // Agregar control de zoom personalizado
+        L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
+
+        // Capa base del mapa con mejor contraste
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 18
+        }).addTo(map);
+
+        // Colores por región con mejor contraste
+        const REGION_COLORS = {
+            "Costa": "#3b82f6",
+            "Sierra": "#22c55e", 
+            "Amazonía": "#ef4444",
+            "Insular": "#f59e0b"
+        };
+
+        let provincesLayer;
+        let provincesData = {};
+        let currentFilter = null;
+        let allMarkers = [];
+
+        // Elementos del DOM
+        const infoPanel = document.getElementById('info-panel');
+        const infoContent = document.getElementById('info-content');
+        const provList = document.getElementById('prov-list');
+
+        // Coordenadas mejoradas de las capitales provinciales
+        const capitalCoords = {
+            "Azuay": [-2.9001, -79.0059],
+            "Bolívar": [-1.5931, -79.0059],
+            "Cañar": [-2.5596, -78.8419],
+            "Carchi": [0.8118, -77.7132],
+            "Chimborazo": [-1.6635, -78.6568],
+            "Cotopaxi": [-0.9347, -78.6157],
+            "Imbabura": [0.3517, -78.1221],
+            "Loja": [-3.9939, -79.2042],
+            "Pichincha": [-0.1807, -78.4678],
+            "Tungurahua": [-1.2490, -78.6167],
+            "El Oro": [-3.2582, -79.9554],
+            "Esmeraldas": [0.9592, -79.6516],
+            "Guayas": [-2.1894, -79.8890],
+            "Los Ríos": [-1.8016, -79.5343],
+            "Manabí": [-1.0546, -80.4557],
+            "Santa Elena": [-2.2269, -80.8590],
+            "Morona Santiago": [-2.3038, -78.1165],
+            "Napo": [-1.0069, -77.8155],
+            "Orellana": [-0.4685, -76.9871],
+            "Pastaza": [-1.4963, -78.0036],
+            "Sucumbíos": [0.0939, -76.8917],
+            "Zamora Chinchipe": [-4.0671, -78.9549],
+            "Galápagos": [-0.7436, -90.3018],
+            "Santo Domingo": [-0.2521, -79.1755]
+        };
+
+        // Cargar datos de provincias desde la API Flask
+        fetch('/api/provincias')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error al cargar datos de provincias');
+                }
+                return response.json();
+            })
+            .then(data => {
+                provincesData = data;
+                console.log('✅ Datos de provincias cargados:', Object.keys(data).length, 'provincias');
+                loadProvincesList();
+                loadMap();
+            })
+            .catch(error => {
+                console.error('❌ Error cargando datos:', error);
+                provList.innerHTML = `
+                    <div style="color: #ef4444; padding: 20px; text-align: center;">
+                        <p>❌ Error cargando datos de provincias</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Verifica que el servidor Flask esté ejecutándose</p>
+                    </div>
+                `;
+            });
+
+        function loadProvincesList() {
+            provList.innerHTML = '';
+            
+            const filteredProvinces = Object.entries(provincesData).filter(([name, data]) => {
+                return !currentFilter || data.region === currentFilter;
+            });
+
+            filteredProvinces.forEach(([name, data]) => {
+                const btn = document.createElement('button');
+                btn.className = 'prov-btn';
+                btn.innerHTML = `
+                    <div>
+                        <div class="prov-name">${name}</div>
+                        <div class="prov-capital">Capital: ${data.capital}</div>
+                    </div>
+                    <span class="region-indicator" style="background: ${REGION_COLORS[data.region]}"></span>
+                `;
+                btn.onclick = () => focusProvince(name);
+                btn.title = `Ver información de ${name}`;
+                provList.appendChild(btn);
+            });
+
+            // Mostrar contador de provincias filtradas
+            const countText = document.createElement('div');
+            countText.style.cssText = 'text-align: center; padding: 15px; color: #9ca3af; font-size: 12px; border-top: 1px solid #374151; margin-top: 10px;';
+            countText.textContent = `Mostrando ${filteredProvinces.length} de 24 provincias`;
+            provList.appendChild(countText);
+        }
+
+        function loadMap() {
+            // Limpiar marcadores existentes
+            allMarkers.forEach(marker => map.removeLayer(marker));
+            allMarkers = [];
+
+            Object.entries(capitalCoords).forEach(([province, coords]) => {
+                if (!provincesData[province]) return;
+                
+                const data = provincesData[province];
+                const color = REGION_COLORS[data.region];
+                
+                // Crear marcador más visible y atractivo
+                const marker = L.circleMarker(coords, {
+                    radius: 10,
+                    fillColor: color,
+                    color: '#ffffff',
+                    weight: 3,
+                    opacity: 1,
+                    fillOpacity: 0.9,
+                    className: 'province-marker'
+                }).addTo(map);
+
+                // Tooltip mejorado
+                marker.bindTooltip(`
+                    <div style="text-align: center; font-weight: bold;">
+                        <div style="font-size: 14px; color: ${color};">${province}</div>
+                        <div style="font-size: 12px; color: #666;">Capital: ${data.capital}</div>
+                        <div style="font-size: 11px; color: #888;">${data.region} • ${data.poblacion}</div>
+                    </div>
+                `, {
+                    permanent: false,
+                    direction: 'top',
+                    offset: [0, -15],
+                    className: 'custom-tooltip'
+                });
+
+                // Eventos del marcador
+                marker.on('click', () => {
+                    showInfo(province);
+                    map.setView(coords, 8);
+                });
+                
+                marker.on('mouseover', function() {
+                    this.setRadius(15);
+                    this.setStyle({fillOpacity: 1, weight: 4});
+                });
+                
+                marker.on('mouseout', function() {
+                    this.setRadius(10);
+                    this.setStyle({fillOpacity: 0.9, weight: 3});
+                });
+
+                allMarkers.push(marker);
+            });
+
+            console.log('✅ Mapa cargado con', allMarkers.length, 'marcadores');
+        }
+
+        function showInfo(province) {
+            const data = provincesData[province];
+            if (!data) {
+                console.error('❌ No se encontraron datos para:', province);
+                return;
+            }
+
+            const color = REGION_COLORS[data.region];
+            
+            infoContent.innerHTML = `
+                <h2 style="border-bottom-color: ${color}">
+                    ${province}
+                    <div style="font-size: 14px; color: ${color}; margin-top: 5px;">${data.region}</div>
+                </h2>
+                
+                <div class="info-grid">
+                    <div class="info-item" style="border-left-color: ${color}">
+                        <strong>🏛️ Capital Provincial</strong>
+                        <span>${data.capital}</span>
+                    </div>
+                    
+                    <div class="info-item" style="border-left-color: ${color}">
+                        <strong>📏 Superficie Territorial</strong>
+                        <span>${data.superficie}</span>
+                    </div>
+                    
+                    <div class="info-item" style="border-left-color: ${color}">
+                        <strong>👥 Población Estimada</strong>
+                        <span>${data.poblacion}</span>
+                    </div>
+                    
+                    <div class="info-item" style="border-left-color: ${color}">
+                        <strong>🗺️ Características Geográficas</strong>
+                        <span>${data.geografia}</span>
+                    </div>
+                    
+                    <div class="info-item" style="border-left-color: ${color}">
+                        <strong>💼 Economía Principal</strong>
+                        <span>${data.economia}</span>
+                    </div>
+                </div>
+                
+                <div class="province-stats">
+                    <div class="stat-card">
+                        <span class="stat-number">${data.cantones}</span>
+                        <span class="stat-label">Cantones</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-number">${data.parroquias}</span>
+                        <span class="stat-label">Parroquias</span>
+                    </div>
+                </div>
+            `;
+            
+            infoPanel.classList.add('show');
+            console.log('ℹ️ Mostrando información de:', province);
+        }
+
+        function hideInfo() {
+            infoPanel.classList.remove('show');
+        }
+
+        function focusProvince(province) {
+            showInfo(province);
+            
+            if (capitalCoords[province]) {
+                map.setView(capitalCoords[province], 8);
+                
+                // Efecto de animación en el marcador
+                const targetMarker = allMarkers.find(marker => {
+                    return marker.getLatLng().equals(L.latLng(capitalCoords[province]));
+                });
+                
+                if (targetMarker) {
+                    targetMarker.setRadius(20);
+                    setTimeout(() => targetMarker.setRadius(10), 1000);
+                }
+            }
+        }
+
+        function filterByRegion(region) {
+            currentFilter = region;
+            loadProvincesList();
+            
+            // Actualizar botones de filtro
+            document.querySelectorAll('.region-btn').forEach(btn => {
+                btn.style.opacity = '0.6';
+                btn.style.transform = 'scale(0.95)';
+            });
+            
+            const activeBtn = document.querySelector(`.region-btn.${region.toLowerCase().replace('ía', 'ia')}`);
+            if (activeBtn) {
+                activeBtn.style.opacity = '1';
+                activeBtn.style.transform = 'scale(1.05)';
+            }
+            
+            // Filtrar marcadores en el mapa
+            allMarkers.forEach(marker => {
+                const coords = marker.getLatLng();
+                const province = Object.keys(capitalCoords).find(p => 
+                    capitalCoords[p][0] === coords.lat && capitalCoords[p][1] === coords.lng
+                );
+                
+                if (province && provincesData[province]) {
+                    if (provincesData[province].region === region) {
+                        marker.addTo(map);
+                        marker.setStyle({fillOpacity: 0.9});
+                    } else {
+                        map.removeLayer(marker);
+                    }
+                }
+            });
+            
+            console.log('🔍 Filtrado por región:', region);
+        }
+
+        function showAllProvinces() {
+            currentFilter = null;
+            loadProvincesList();
+            
+            // Resetear botones de filtro
+            document.querySelectorAll('.region-btn').forEach(btn => {
+                btn.style.opacity = '1';
+                btn.style.transform = 'scale(1)';
+            });
+            
+            // Mostrar todos los marcadores
+            allMarkers.forEach(marker => {
+                marker.addTo(map);
+                marker.setStyle({fillOpacity: 0.9});
+            });
+            
+            // Volver a la vista inicial del mapa
+            resetMapView();
+            console.log('🗺️ Mostrando todas las provincias');
+        }
+
+        function resetMapView() {
+            map.setView([-1.8312, -78.1834], 6.5);
+            hideInfo();
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        // Eventos del mapa
+        map.on('click', function(e) {
+            // Solo ocultar info si no se hizo clic en un marcador
+            if (!e.originalEvent.target.classList.contains('leaflet-interactive')) {
+                hideInfo();
+            }
+        });
+
+        // Atajos de teclado
+        document.addEventListener('keydown', function(e) {
+            switch(e.key) {
+                case 'Escape':
+                    hideInfo();
+                    showAllProvinces();
+                    break;
+                case '1':
+                    filterByRegion('Costa');
+                    break;
+                case '2':
+                    filterByRegion('Sierra');
+                    break;
+                case '3':
+                    filterByRegion('Amazonía');
+                    break;
+                case '4':
+                    filterByRegion('Insular');
+                    break;
+                case 'r':
+                case 'R':
+                    resetMapView();
+                    break;
+            }
+        });
+
+        // Mostrar instrucciones iniciales
+        setTimeout(() => {
+            if (Object.keys(provincesData).length > 0) {
+                console.log('🎯 Mapa de Ecuador cargado exitosamente');
+                console.log('📍 Haz clic en cualquier provincia para ver su información');
+                console.log('⌨️ Atajos: 1-Costa, 2-Sierra, 3-Amazonía, 4-Insular, R-Reset, Esc-Cerrar');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

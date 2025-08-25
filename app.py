@@ -285,10 +285,12 @@ def serve_data(filename):
     return send_from_directory("data", filename)
 
 if __name__ == "__main__":
-    # Crear directorios necesarios al inicio
     create_directories()
     
     print("🗺️  Servidor del Mapa Geopolítico de Ecuador iniciado")
     print("📍 Accede a: http://localhost:5000")
     print("🏛️  24 provincias con información completa")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    
+    # Usar puerto de Render o 5000 local
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
